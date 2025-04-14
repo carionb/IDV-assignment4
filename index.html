@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Singapore Age Structure Map</title>
+	<script src="https://d3js.org/d3.v6.min.js"></script>
+	<style>
+		:root {
+		  --primary-blue: #2c3e50;
+		  --accent-teal: #66c2a5;    /* Children */
+		  --accent-blue: #8da0cb;    /* Working Age */
+		  --accent-orange: #fc8d62;  /* Seniors */
+		  --light-gray: #ecf0f1;
+		  --text-dark: #2c3e50;
+		  --text-light: #95a5a6;
+		}
+		
+		body {
+		  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+		  margin: 0;
+		  padding: 0;
+		  background: #f8f9fa;
+		  color: var(--text-dark);
+		  line-height: 1.6;
+		}
+		.header-container {
+		  background: white;
+		  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+		  padding: 2rem 0;
+		  margin-bottom: 2rem;
+		}
+		header {
+		  text-align: center;
+		  max-width: 1200px;
+		  margin: 0 auto;
+		  padding: 0 2rem;
+		}
+		header h1 {
+		  margin: 0;
+		  font-size: 32px;
+		  color: #1e293b;
+		}
+		header p {
+		  margin: 10px 0 0 0;
+		  font-size: 16px;
+		  line-height: 1.5;
+		}
+		.container {
+		  display: flex;
+		  flex-direction: column;
+		  align-items: center;
+		  max-width: 1200px;
+		  margin: 0 auto;
+		  padding: 0 20px;
+		}
+		.controls-container {
+		  background-color: white;
+		  border-radius: 8px;
+		  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+		  padding: 15px;
+		  margin-bottom: 20px;
+		  width: 100%;
+		  box-sizing: border-box;
+		  display: flex;
+		  flex-wrap: wrap;
+		  align-items: center;
+		  gap: 20px;
+		}
+		.controls {
+		  display: flex;
+		  align-items: center;
+		}
+		.controls label {
+		  margin-right: 10px;
+		  font-weight: 600;
+		  color: #475569;
+		}
+		.controls select {
+		  font-size: 14px;
+		  padding: 8px 12px;
+		  border: 1px solid #cbd5e1;
+		  border-radius: 4px;
+		  background-color: white;
+		  color: #334155;
+		  cursor: pointer;
+		}
+		.controls select:focus {
+		  outline: none;
+		  border-color: #3b82f6;
+		  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+		}
+		.map-container {
+		  position: relative;
+		  width: 100%;
+		  margin-bottom: 30px;
+		  background-color: white;
+		  border-radius: 8px;
+		  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+		  padding: 20px;
+		  box-sizing: border-box;
+		}
+		/* Legend container */
+		#legend {
+		  position: absolute;
+		  bottom: 30px;
+		  right: 30px;
+		  background: white;
+		  padding: 10px;
+		  border-radius: 8px;
+		  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+		  z-index: 10;
+		  font-size: 14px;
+		}
+		#legend h3 {
+		  margin: 0 0 8px 0;
+		  font-size: 16px;
+		  color: #1e293b;
+		}
+		#legend p {
+		  margin: 5px 0;
+		  display: flex;
+		  align-items: center;
+		}
+		#legend span.color-box {
+		  display: inline-block;
+		  width: 20px;
+		  height: 20px;
+		  margin-right: 10px;
+		  border-radius: 3px;
+		}
+		/* Map styling */
+		#map {
+		  display: block;
+		  margin: 0 auto;
+		  max-width: 100%;
+		  height: auto;
+		}
+		/* Tooltip styling */
+		#tooltip {
+		  position: absolute;
+		  background: rgba(255, 255, 255, 0.98);
+		  border-radius: 8px;
+		  padding: 1.25rem;
+		  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+		  pointer-events: none;
+		  opacity: 0;
+		  transition: opacity 0.2s ease;
+		  backdrop-filter: blur(4px);
+		  border: 1px solid rgba(0, 0, 0, 0.05);
+		  z-index: 100;
+		  display: none;
+		}
+		#tooltip strong {
+		  color: #1e293b;
+		}
+		
+		.tooltip-header {
+		  font-weight: 600;
+		  margin-bottom: 0.75rem;
+		  color: var(--primary-blue);
+		}
+		
+		.metric {
+		  margin-bottom: 8px;
+		}
+		
+		.metric-bar {
+		  height: 4px;
+		  background: var(--light-gray);
+		  border-radius: 2px;
+		  margin: 0.5rem 0;
+		  overflow: hidden;
+		}
+		
+		.metric-fill {
+		  height: 100%;
+		  transition: width 0.3s ease;
+		}
+		
+		/* Footer styling */
+		footer {
+		  text-align: center;
+		  padding: 20px;
+		  background: white;
+		  font-size: 14px;
+		  margin-top: 30px;
+		  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.03);
+		  width: 100%;
+		}
+		.info-text {
+		  background: white;
+		  padding: 15px 20px;
+		  border-radius: 8px;
+		  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+		  margin-bottom: 20px;
+		  max-width: 100%;
+		  text-align: left;
+		  font-size: 14px;
+		  line-height: 1.6;
+		}
+		path {
+		  transition: 
+		    fill 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+		    stroke-width 0.2s ease,
+		    filter 0.3s ease;
+		}
+		
+		path:hover {
+		  stroke-width: 2px;
+		  stroke: var(--primary-blue);
+		  filter: brightness(1.08);
+		}
+		
+		.metric-selector {
+		  display: flex;
+		  align-items: center;
+		}
+		
+		.metric-selector label {
+		  margin-right: 10px;
+		  font-weight: 600;
+		  color: #475569;
+		}
+		
+		.method-buttons {
+		  display: flex;
+		  gap: 8px;
+		}
+		
+		.method-button {
+		  padding: 8px 12px;
+		  background-color: #f1f5f9;
+		  border: 1px solid #cbd5e1;
+		  border-radius: 4px;
+		  cursor: pointer;
+		  font-size: 14px;
+		  color: #334155;
+		  transition: all 0.2s ease;
+		}
+		
+		.method-button:hover {
+		  background-color: #e2e8f0;
+		}
+		
+		.method-button.active {
+		  background-color: #3b82f6;
+		  color: white;
+		  border-color: #2563eb;
+		}
+		
+		#data-source {
+		  font-size: 12px;
+		  color: var(--text-light);
+		  margin-bottom: 8px;
+		  text-align: left;
+		}
+		
+		#data-source a {
+		 color: var(--accent-teal);
+		 text-decoration: none;
+		}
+		
+		   #data-source a:hover {
+		 text-decoration: underline;
+		}
+		
+	</style>
+</head>
+<body>
+	<div class="header-container">
+		<header>
+			<h1>Singapore Age Structure Map</h1>
+		</header>
+	</div>
+	<div class="container">
+		<div class="info-text">
+			<p> This map illustrates the age structure of Singapore’s subzones by comparing each area’s population composition to the national average. </p>
+			<p> Instead of simply showing the dominant age group (which is typically the working-age population), the visualization highlights subzones where specific age groups: Children (0–14), Working Age (15–64), or Seniors (65+) are over-represented. </p>
+			<p> This approach reveals subzones with distinctive demographic profiles, offering insights for urban planning, community programming, and age-targeted services. </p>
+		</div>
+		<div class="controls-container">
+			<div class="controls">
+				<label for="gender-select">Gender Filter:</label>
+				<select id="gender-select">
+					<option value="all">All</option>
+					<option value="male">Male</option>
+					<option value="female">Female</option>
+				</select>
+			</div>
+			<div class="metric-selector">
+				<label>Display Method:</label>
+				<div class="method-buttons">
+					<button id="relative-btn" class="method-button active">Relative to National Average</button>
+					<button id="absolute-btn" class="method-button">Highest Percentage</button>
+					<button id="gradient-btn" class="method-button">Age Group Gradient</button>
+				</div>
+			</div>
+		</div>
+		<div class="map-container">
+			<!-- SVG Map Container -->
+			<svg id="map" width="1200" height="800" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet"></svg>
+			<!-- Legend (inside map) -->
+			<div id="legend">
+				<h3>Age Groups</h3>
+				<p><span class="color-box" style="background:#66c2a5;"></span>Children (0-14)</p>
+				<p><span class="color-box" style="background:#8da0cb;"></span>Working Age (15-64)</p>
+				<p><span class="color-box" style="background:#fc8d62;"></span>Seniors (65+)</p>
+			</div>
+			<!-- Tooltip -->
+			<div id="tooltip"></div>
+		</div>
+	</div>
+	<!-- Footer -->
+	<footer>
+		<div id="data-source">
+			<p> Singapore Residents by Planning Area, Subzone, Single Year of Age and Sex, Jun 2024: <a href="https://www.singstat.gov.sg/publications/population/population-trends" target="_blank"> https://www.singstat.gov.sg/publications/population/population-trends </a>
+			</p>
+			<p> Sgmap: <a href="https://chi-loong.github.io/IDV/assignments/sgmap.json" target="_blank"> https://chi-loong.github.io/IDV/assignments/sgmap.json </a>
+			</p>
+		</div>
+		<p>Baorong Li - 1009456</p>
+	</footer>
+	<script>
+		/********** Global Variables **********/
+		const width = 1100, height = 800;
+		let currentGender = "all";  // Modes: "all", "male", "female"
+		let displayMethod = "relative"; // Modes: "relative", "absolute", "gradient"
+		
+		
+		// Age group color palettes - Updated to match the requested colors
+		const ageGroupColors = {
+		  "children": "#66c2a5",   // 0-14 years
+		  "working": "#8da0cb",    // 15-64 years
+		  "seniors": "#fc8d62"     // 65+ years
+		};
+		
+		// For gradient display
+		const gradientColors = {
+		  "children": d3.scaleLinear()
+		    .domain([0, 0.15, 0.3])
+		    .range(["#e5f5f0", "#66c2a5", "#2c9678"]),
+		  "working": d3.scaleLinear()
+		    .domain([0.4, 0.65, 0.9])
+		    .range(["#e1e5f2", "#8da0cb", "#5270b3"]),
+		  "seniors": d3.scaleLinear()
+		    .domain([0, 0.07, 0.14])
+		    .range(["#fde5d9", "#fc8d62", "#e05e29"])
+		};
+		
+		const svg = d3.select("#map");
+		const tooltip = d3.select("#tooltip");
+		
+		
+		
+		// Projection: adjust scale to ensure the map is fully visible
+		const projection = d3.geoMercator()
+		                     .center([103.8198, 1.3521])
+		                     .scale(125000) // Adjusted scale for better visualization
+		                     .translate([width / 2, height / 2]);
+		const geoPath = d3.geoPath().projection(projection);
+		
+		/********** Data Storage **********/
+		let geojsonData;
+		let aggregatedTotals = {};  // Mapping: subzone -> { male, female, total }
+		let nationalAverages = { children: 0, working: 0, seniors: 0 }; // National average percentages
+		
+		// Age group distributions for each subzone (for simplified age groups)
+		let ageGroups = { all: {}, male: {}, female: {} };
+		
+		/********** Data Loading **********/
+		    Promise.all([
+		  d3.csv("https://raw.githubusercontent.com/carionb/IDV-assignment4/main/population.csv", d => {
+		    const planningArea = d["PLANNING AREA"].trim();
+		    let subzone = d["SUBZONE"].trim();
+		
+		    // 只有国家级 total 才归为 "national"
+		    if (planningArea === "TOTAL" && subzone === "TOTAL") {
+		      subzone = "national";
+		    }
+		
+		    return {
+		      planningArea,
+		      subzone,
+		      age: d["Age"].trim(),
+		      sex: d["Sex"].trim(),
+		      population: +d["Population"].replace(/,/g, "") || 0
+		    };
+		  }),
+		  d3.json("https://raw.githubusercontent.com/carionb/IDV-assignment4/main/sgmap.json")
+		]).then(([csvData, geoData]) => {
+		  geojsonData = geoData;
+		  processCSV(csvData);
+		  calculateNationalAverages();
+		  updateVisualization();
+		}).catch(error => {
+		  console.error("Error loading files:", error);
+		});
+		
+		
+		/********** Data Processing **********/
+		function processCSV(data) {
+		  aggregatedTotals = {};
+		  ageGroups = { all: {}, male: {}, female: {} };
+		
+		  function isTotalRow(d) {
+		    return d.age.trim().toLowerCase() === "total";
+		  }
+		
+		  // 初始化 subzones
+		  data.forEach(d => {
+		    const s = d.subzone;
+		    if (!aggregatedTotals[s]) {
+		      aggregatedTotals[s] = { male: 0, female: 0, total: 0 };
+		      ageGroups.all[s] = { children: 0, working: 0, seniors: 0 };
+		      ageGroups.male[s] = { children: 0, working: 0, seniors: 0 };
+		      ageGroups.female[s] = { children: 0, working: 0, seniors: 0 };
+		    }
+		  });
+		
+		  // 1. 读取 total 行
+		  data.filter(isTotalRow).forEach(d => {
+		    const s = d.subzone;
+		    const sex = d.sex.toLowerCase();
+		
+		    if (sex === "total") {
+		      aggregatedTotals[s].total = d.population;
+		    } else if (sex === "males") {
+		      aggregatedTotals[s].male = d.population;
+		    } else if (sex === "females") {
+		      aggregatedTotals[s].female = d.population;
+		    }
+		  });
+		
+		  // 3. 分类年龄段
+		  data.filter(d => !isTotalRow(d)).forEach(d => {
+		  const s = d.subzone;
+		  if (!aggregatedTotals[s]) return;
+		
+		  let ageNum = 0;
+		  if (d.age.toLowerCase().includes("90")) {
+		    ageNum = 90;
+		  } else {
+		    ageNum = +d.age;
+		    if (isNaN(ageNum)) return;
+		  }
+		
+		  let ageGroup;
+		  if (ageNum <= 14) {
+		    ageGroup = "children";
+		  } else if (ageNum <= 64) {
+		    ageGroup = "working";
+		  } else {
+		    ageGroup = "seniors";
+		  }
+		
+		  const sex = d.sex.toLowerCase();
+		
+		  if (sex === "total") {
+		    ageGroups.all[s][ageGroup] += d.population;
+		  } else if (sex === "males") {
+		    ageGroups.male[s][ageGroup] += d.population;
+		  } else if (sex === "females") {
+		    ageGroups.female[s][ageGroup] += d.population;
+		  }
+		});
+		
+		
+		  // 4. 删除无总数的 subzone
+		  Object.keys(aggregatedTotals).forEach(s => {
+		    if (aggregatedTotals[s].total === 0) {
+		      delete aggregatedTotals[s];
+		      delete ageGroups.all[s];
+		      delete ageGroups.male[s];
+		      delete ageGroups.female[s];
+		    }
+		  });
+		}
+		
+		/********** Calculate National Averages **********/
+		function calculateNationalAverages() {
+		  // Use the "national" subzone if available, otherwise calculate from all subzones
+		  if (ageGroups.all["national"]) {
+		    const national = ageGroups.all["national"];
+		    const total = national.children + national.working + national.seniors;
+		    
+		    if (total > 0) {
+		      nationalAverages.children = national.children / total;
+		      nationalAverages.working = national.working / total;
+		      nationalAverages.seniors = national.seniors / total;
+		    }
+		  } else {
+		    // Calculate from all subzones
+		    let totalChildren = 0, totalWorking = 0, totalSeniors = 0, totalPop = 0;
+		    
+		    Object.keys(ageGroups.all).forEach(s => {
+		      totalChildren += ageGroups.all[s].children;
+		      totalWorking += ageGroups.all[s].working;
+		      totalSeniors += ageGroups.all[s].seniors;
+		      totalPop += ageGroups.all[s].children + ageGroups.all[s].working + ageGroups.all[s].seniors;
+		    });
+		    
+		    if (totalPop > 0) {
+		      nationalAverages.children = totalChildren / totalPop;
+		      nationalAverages.working = totalWorking / totalPop;
+		      nationalAverages.seniors = totalSeniors / totalPop;
+		    }
+		  }
+		  
+		  console.log("National averages calculated:", nationalAverages);
+		}
+		
+		/********** Visualization Update **********/
+		function updateVisualization() {
+		  // Choose the appropriate age group data according to current gender
+		  let currentAgeGroups;
+		  if (currentGender === "all") {
+		    currentAgeGroups = ageGroups.all;
+		  } else if (currentGender === "male") {
+		    currentAgeGroups = ageGroups.male;
+		  } else if (currentGender === "female") {
+		    currentAgeGroups = ageGroups.female;
+		  }
+		  
+		  // Update legend based on display method
+		  updateLegend();
+		  
+		  // Calculate predominant or relative age groups for each subzone
+		
+		let displayedAgeGroups = {};
+		let maxRatios = {};
+		
+		Object.keys(currentAgeGroups).forEach(s => {
+		  const groups = currentAgeGroups[s];
+		  const total = groups.children + groups.working + groups.seniors;
+		  
+		  if (total === 0) {
+		displayedAgeGroups[s] = { group: "none", value: 0 };
+		return;
+		  }
+		  
+		  // Calculate percentages
+		  const pctChildren = groups.children / total;
+		  const pctWorking = groups.working / total;
+		  const pctSeniors = groups.seniors / total;
+		  
+		  // Store percentages for tooltip
+		  maxRatios[s] = {
+		children: pctChildren,
+		working: pctWorking,
+		seniors: pctSeniors
+		  };
+		  
+		  // 针对 relative 模式计算相对值
+		  const relChildren = pctChildren / nationalAverages.children;
+		  const relWorking = pctWorking / nationalAverages.working;
+		  const relSeniors = pctSeniors / nationalAverages.seniors;
+		  
+		  // Store relative values for tooltip
+		  maxRatios[s].relChildren = relChildren;
+		  maxRatios[s].relWorking = relWorking;
+		  maxRatios[s].relSeniors = relSeniors;
+		  
+		  // 设置 65+ 突出显示的阈值（例如 7%）
+		  const seniorsThreshold = 0.07;
+		  
+		  if (displayMethod === "absolute") {
+		// 在 Highest Percentage 模式下，直接按最大比例选取
+		if (pctChildren >= pctWorking && pctChildren >= pctSeniors) {
+		  displayedAgeGroups[s] = { group: "children", value: pctChildren };
+		} else if (pctWorking >= pctChildren && pctWorking >= pctSeniors) {
+		  displayedAgeGroups[s] = { group: "working", value: pctWorking };
+		} else {
+		  displayedAgeGroups[s] = { group: "seniors", value: pctSeniors };
+		}
+		  } else if (displayMethod === "relative") {
+		// 在 Relative 模式下，如果 seniors 超过阈值，直接显示 relative seniors
+		if (pctSeniors >= seniorsThreshold) {
+		  displayedAgeGroups[s] = { group: "seniors", value: relSeniors };
+		} else {
+		  if (relChildren >= relWorking && relChildren >= relSeniors) {
+		    displayedAgeGroups[s] = { group: "children", value: relChildren };
+		  } else if (relWorking >= relChildren && relWorking >= relSeniors) {
+		    displayedAgeGroups[s] = { group: "working", value: relWorking };
+		  } else {
+		    displayedAgeGroups[s] = { group: "seniors", value: relSeniors };
+		  }
+		}
+		  } else {
+		// 在 Gradient 模式下，如果 seniors 超过阈值，直接显示 seniors
+		if (pctSeniors >= seniorsThreshold) {
+		  displayedAgeGroups[s] = { group: "seniors", value: pctSeniors };
+		} else {
+		  if (pctChildren >= pctWorking && pctChildren >= pctSeniors) {
+		    displayedAgeGroups[s] = { group: "children", value: pctChildren };
+		  } else if (pctWorking >= pctChildren && pctWorking >= pctSeniors) {
+		    displayedAgeGroups[s] = { group: "working", value: pctWorking };
+		  } else {
+		    displayedAgeGroups[s] = { group: "seniors", value: pctSeniors };
+		  }
+		}
+		  }
+		});
+			  
+		  // Update GeoJSON features
+		  geojsonData.features.forEach(feature => {
+		  let s = feature.properties["Subzone Name"].trim().toUpperCase();
+		
+		  if (s === "TOTAL") s = "NATIONAL";
+		
+		  // 设置展示的年龄组（用于渲染）
+		  if (displayedAgeGroups[s]) {
+		    feature.properties.ageGroup = displayedAgeGroups[s].group;
+		    feature.properties.ageValue = displayedAgeGroups[s].value;
+		  } else {
+		    feature.properties.ageGroup = "none";
+		    feature.properties.ageValue = 0;
+		  }
+		
+		  // 设置 tooltip 显示的数据
+		  if (currentAgeGroups[s]) {
+		    feature.properties.children = currentAgeGroups[s].children;
+		    feature.properties.working = currentAgeGroups[s].working;
+		    feature.properties.seniors = currentAgeGroups[s].seniors;
+		    feature.properties.totalPop = 
+		      currentAgeGroups[s].children + 
+		      currentAgeGroups[s].working + 
+		      currentAgeGroups[s].seniors;
+		
+		    if (maxRatios[s]) {
+		      feature.properties.pctChildren = maxRatios[s].children;
+		      feature.properties.pctWorking = maxRatios[s].working;
+		      feature.properties.pctSeniors = maxRatios[s].seniors;
+		
+		      if (maxRatios[s].relChildren) {
+		        feature.properties.relChildren = maxRatios[s].relChildren;
+		        feature.properties.relWorking = maxRatios[s].relWorking;
+		        feature.properties.relSeniors = maxRatios[s].relSeniors;
+		      }
+		    }
+		  }
+		});
+		
+		  
+		  // Determine fill color based on display method and age group
+		  function getFillColor(d) {
+		    const ageGroup = d.properties.ageGroup;
+		    const value = d.properties.ageValue;
+		    
+		    if (ageGroup === "none") return "#e2e8f0";
+		    
+		    if (displayMethod === "gradient") {
+		      // Use gradient based on percentage value
+		      const pct = d.properties["pct" + capitalizeFirstLetter(ageGroup)];
+		      return gradientColors[ageGroup](pct);
+		    } else {
+		      // Use standard colors for absolute or relative methods
+		      return ageGroupColors[ageGroup];
+		    }
+		  }
+		  
+		  // Capitalize helper function
+		  function capitalizeFirstLetter(string) {
+		      return string.charAt(0).toUpperCase() + string.slice(1);
+		  }
+		  
+		  // Bind data to SVG paths
+		  const paths = svg.selectAll("path")
+		                   .data(geojsonData.features, d => d.properties["Subzone Name"]);
+		  
+		  // Enter new paths
+		  paths.enter()
+		       .append("path")
+		       .attr("d", geoPath)
+		       .attr("stroke", "#ffffff")
+		       .attr("stroke-width", 1)
+		       .attr("fill", getFillColor)
+		       .on("mouseover", (event, d) => {
+		 
+		  const subzone = d.properties["Subzone Name"].trim();
+		  const ageGroup = d.properties.ageGroup;
+		  
+		 
+		  let tooltipHTML = `<div class="tooltip-header">${subzone}</div>`;
+		
+		  tooltipHTML += `<div>Total Population: ${d.properties.totalPop || 0}</div>`;
+		  
+		  if (ageGroup === "none") {
+		
+		tooltipHTML += `<div>No data available</div>`;
+		  } else {
+
+		let childrenPct = (d.properties.pctChildren * 100).toFixed(1);
+		let workingPct = (d.properties.pctWorking * 100).toFixed(1);
+		let seniorsPct = (d.properties.pctSeniors * 100).toFixed(1);
+		
+
+		const metrics = [
+		  {
+		    label: "Children (0-14)",
+		    value: d.properties.pctChildren,
+		    color: ageGroupColors.children
+		  },
+		  {
+		    label: "Working Age (15-64)",
+		    value: d.properties.pctWorking,
+		    color: ageGroupColors.working
+		  },
+		  {
+		    label: "Seniors (65+)",
+		    value: d.properties.pctSeniors,
+		    color: ageGroupColors.seniors
+		  }
+		];
+		
+
+		let relativeHTML = "";
+		if (d.properties.relChildren) {
+		  relativeHTML = `
+		    <div style="margin-top: 10px;">
+		      <strong>Relative to National Average:</strong><br/>
+		      Children: ${((d.properties.relChildren - 1) * 100).toFixed(1)}%<br/>
+		      Working Age: ${((d.properties.relWorking - 1) * 100).toFixed(1)}%<br/>
+		      Seniors: ${((d.properties.relSeniors - 1) * 100).toFixed(1)}%
+		    </div>
+		  `;
+		}
+		
+
+		tooltipHTML += metrics.map(m => `
+		  <div class="metric">
+		    <div style="color:${m.color}">${m.label}</div>
+		    <div class="metric-bar">
+		      <div class="metric-fill" style="width:${m.value * 100}%; background:${m.color}"></div>
+		    </div>
+		    <div>${(m.value * 100).toFixed(1)}%</div>
+		  </div>
+		`).join('') + relativeHTML;
+		  }
+		  
+
+		  tooltip.html(tooltipHTML)
+		     .style("display", "block")
+		     .style("opacity", 1);
+		  
+		  // 计算 tooltip 的位置
+		  const tooltipWidth = tooltip.node().offsetWidth;
+		  const tooltipHeight = tooltip.node().offsetHeight;
+		  let left = event.pageX + 15;
+		  let top = event.pageY - tooltipHeight / 2;
+		  
+		  // 调整 tooltip 位置，确保在视窗内显示
+		  if (left + tooltipWidth > window.innerWidth) {
+		left = event.pageX - tooltipWidth - 15;
+		  }
+		  if (top + tooltipHeight > window.innerHeight) {
+		top = window.innerHeight - tooltipHeight - 10;
+		  }
+		  if (top < 10) {
+		top = 10;
+		  }
+		  
+		  tooltip.style("left", left + "px")
+		     .style("top", top + "px");
+		})
+		.on("mousemove", (event) => {
+		  // 更新 tooltip 位置
+		  const tooltipWidth = tooltip.node().offsetWidth;
+		  const tooltipHeight = tooltip.node().offsetHeight;
+		  let left = event.pageX + 15;
+		  let top = event.pageY - tooltipHeight / 2;
+		  
+		  if (left + tooltipWidth > window.innerWidth) {
+		left = event.pageX - tooltipWidth - 15;
+		  }
+		  if (top + tooltipHeight > window.innerHeight) {
+		top = window.innerHeight - tooltipHeight - 10;
+		  }
+		  if (top < 10) {
+		top = 10;
+		  }
+		  
+		  tooltip.style("left", left + "px")
+		     .style("top", top + "px");
+		})
+		.on("mouseout", () => {
+		  tooltip.style("opacity", 0)
+		     .style("display", "none");
+		});
+		
+		  
+		  // Update existing paths
+		  paths.transition()
+		       .duration(500)
+		       .attr("fill", getFillColor);
+		  
+		  // Remove obsolete paths if any
+		  paths.exit().remove();
+		}
+		
+		// Update legend based on current display method
+		function updateLegend() {
+		  const legend = d3.select("#legend");
+		  
+		  // Clear existing content
+		  legend.html("<h3>Age Groups</h3>");
+		  
+		  if (displayMethod === "relative") {
+		    legend.append("p")
+		      .html(`<span class="color-box" style="background:${ageGroupColors.children};"></span>Higher proportion of Children (0-14)`);
+		    legend.append("p")
+		      .html(`<span class="color-box" style="background:${ageGroupColors.working};"></span>Higher proportion of Working Age (15-64)`);
+		    legend.append("p")
+		      .html(`<span class="color-box" style="background:${ageGroupColors.seniors};"></span>Higher proportion of Seniors (65+)`);
+		    legend.append("p").html("<em>* Relative to national average</em>");
+		  } else if (displayMethod === "absolute") {
+		    legend.append("p")
+		      .html(`<span class="color-box" style="background:${ageGroupColors.children};"></span>Predominantly Children (0-14)`);
+		    legend.append("p")
+		      .html(`<span class="color-box" style="background:${ageGroupColors.working};"></span>Predominantly Working Age (15-64)`);
+		    legend.append("p")
+		      .html(`<span class="color-box" style="background:${ageGroupColors.seniors};"></span>Predominantly Seniors (65+)`);
+		  } else if (displayMethod === "gradient") {
+		    // Create mini gradients for each category
+		    legend.append("p")
+		      .html(`<span class="color-box" style="background:${ageGroupColors.children};"></span>Children (0-14): Percentage`);
+		    legend.append("p")
+		      .html(`<span class="color-box" style="background:${ageGroupColors.working};"></span>Working Age (15-64): Percentage`);
+		    legend.append("p")
+		      .html(`<span class="color-box" style="background:${ageGroupColors.seniors};"></span>Seniors (65+): Percentage`);
+		    legend.append("p").html("<em>* Darker color indicates higher percentage</em>");
+		  }
+		}
+		
+		/********** Event Listeners **********/
+		// Gender filter change
+		d3.select("#gender-select").on("change", function() {
+		  currentGender = this.value;
+		  updateVisualization();
+		});
+		
+		// Display method change
+		d3.select("#relative-btn").on("click", function() {
+		  displayMethod = "relative";
+		  
+		  d3.selectAll(".method-button").classed("active", false);
+		  d3.select(this).classed("active", true);
+		  updateVisualization();
+		});
+		
+		d3.select("#absolute-btn").on("click", function() {
+		  displayMethod = "absolute";
+		  d3.selectAll(".method-button").classed("active", false);
+		  d3.select(this).classed("active", true);
+		  updateVisualization();
+		});
+		
+		d3.select("#gradient-btn").on("click", function() {
+		  displayMethod = "gradient";
+		  d3.selectAll(".method-button").classed("active", false);
+		  d3.select(this).classed("active", true);
+		  updateVisualization();
+		});
+		
+	</script>
+</body>
+</html>
