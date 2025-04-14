@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 	<meta charset="UTF-8">
-	<title>Singapore Age Structure Map</title>
+	<title>Assignment 4: Subzone Demographics: Age Patterns in Singapore</title>
 	<script src="https://d3js.org/d3.v6.min.js"></script>
 	<style>
 		:root {
@@ -269,7 +269,7 @@
 <body>
 	<div class="header-container">
 		<header>
-			<h1>Singapore Age Structure Map</h1>
+			<h1>Subzone Demographics: Age Patterns in Singapore</h1>
 		</header>
 	</div>
 	<div class="container">
@@ -369,7 +369,7 @@
 		
 		/********** Data Loading **********/
 		    Promise.all([
-		  d3.csv("https://raw.githubusercontent.com/carionb/IDV-assignment4/main/population.csv", d => {
+		  d3.csv("https://raw.githubusercontent.com/carionb/IDV-assignment4/main/population.CSV", d => {
 		    const planningArea = d["PLANNING AREA"].trim();
 		    let subzone = d["SUBZONE"].trim();
 		
