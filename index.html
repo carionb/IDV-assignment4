@@ -356,7 +356,7 @@
 		const projection = d3.geoMercator()
 		                     .center([103.8198, 1.3521])
 		                     .scale(125000) // Adjusted scale for better visualization
-		                     .translate([width / 2, height / 2]);
+		                     .translate([width / 2, height / 2 - 40]);
 		const geoPath = d3.geoPath().projection(projection);
 		
 		/********** Data Storage **********/
